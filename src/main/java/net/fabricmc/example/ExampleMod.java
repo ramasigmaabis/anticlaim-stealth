@@ -13,28 +13,29 @@ public class ExampleMod implements ModInitializer {
 
             if (chat.contains("permission to build here")) {
                 if (client.player != null) {
-                    // 1. Matikan jumping agar tidak loncat di tempat
+                    // 1. Matikan jumping
                     client.player.setJumping(false);
                     
-                    // 2. Batalkan tugas yang sekarang (supaya dia lupa blok di dalam claim)
-                    client.player.networkHandler.sendChatMessage("#cancel");
-                    
-                    // 3. Tandai lokasi itu sebagai blacklist agar tidak didatangi lagi
+                    // 2. Blacklist blok bermasalah TANPA menghentikan proses utama
                     client.player.networkHandler.sendChatMessage("#blacklist");
                     
-                    // 4. Balik badan 180 derajat
+                    // 3. Putar badan menjauh
                     client.player.setYaw(client.player.getYaw() + 180);
                     
                     new Thread(() -> {
                         try {
-                            // 5. Paksa jalan menjauh selama 2 detik (cari lahan baru)
+                            // 4. Paksa jalan menjauh 2 detik agar keluar dari claim
                             client.options.forwardKey.setPressed(true);
                             Thread.sleep(2000);
                             client.options.forwardKey.setPressed(false);
                             
-                            // 6. NAH, INI KUNCINYA: Suruh Baritone mining lagi dari nol
-                            // Dia akan mencari blok terdekat dari posisi barumu yang bukan di area blacklist
-                            client.player.networkHandler.sendChatMessage("#mine log"); 
+                            // 5. Jeda sebentar agar posisi sinkron
+                            Thread.sleep(500);
+                            
+                            // 6. PAKSA BARITONE MENCARI JALAN BARU
+                            // Perintah ini akan membuat Baritone tetap menjalankan tugas terakhirnya 
+                            // (apapun itu) tapi dari koordinat kamu yang baru.
+                            client.player.networkHandler.sendChatMessage("#repath");
                             
                         } catch (Exception e) {}
                     }).start();
