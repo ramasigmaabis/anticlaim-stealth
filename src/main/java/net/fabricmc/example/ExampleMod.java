@@ -22,35 +22,33 @@ public class ExampleMod implements ModInitializer {
             String chatContent = message.getString();
             MinecraftClient client = MinecraftClient.getInstance();
 
-            // 1. Deteksi wilayah claim
             if (chatContent.contains("permission to build here")) {
-                if (client.player != null && !lastMiningCommand.isEmpty() && !isEscaping) {
-                    isEscaping = true; // Tandai sedang dalam mode kabur
+                if (client.player != null && !lastMiningCommand.isEmpty()) {
                     
                     client.player.networkHandler.sendChatMessage("#cancel");
                     client.player.networkHandler.sendChatMessage("#blacklist");
                     
-                    // Hitung koordinat 50 blok di belakang player
+                    // Hitung koordinat 35 blok ke arah KANAN player
                     Vec3d pos = client.player.getPos();
                     float yaw = client.player.getYaw();
-                    double radians = Math.toRadians(yaw);
-                    double targetX = pos.x + (50 * Math.sin(radians));
-                    double targetZ = pos.z - (50 * Math.cos(radians));
+                    // Menambah 90 derajat ke yaw untuk mendapatkan arah kanan
+                    double radians = Math.toRadians(yaw + 90);
+                    double targetX = pos.x - (35 * Math.sin(radians));
+                    double targetZ = pos.z + (35 * Math.cos(radians));
                     
+                    isEscaping = true;
                     client.player.networkHandler.sendChatMessage("#goto " + (int)targetX + " " + (int)pos.y + " " + (int)targetZ);
                 }
             }
 
-            // 2. Deteksi Baritone selesai jalan (berhenti)
-            // Baritone biasanya mengirim pesan "Path complete" atau "Goal reached" saat selesai #goto
+            // Jika Baritone selesai sampai di titik 35 blok
             if (isEscaping && (chatContent.contains("Path complete") || chatContent.contains("Goal reached"))) {
-                isEscaping = false; 
+                isEscaping = false;
                 if (client.player != null) {
                     client.player.networkHandler.sendChatMessage("#gc");
-                    // Tambah jeda sedikit biar aman sebelum lanjut mine
                     new Thread(() -> {
                         try {
-                            Thread.sleep(1000);
+                            Thread.sleep(1500); // Jeda biar stabil
                             client.player.networkHandler.sendChatMessage(lastMiningCommand);
                         } catch (Exception e) {}
                     }).start();
