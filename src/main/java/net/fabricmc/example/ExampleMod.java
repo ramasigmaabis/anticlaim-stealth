@@ -24,25 +24,27 @@ public class ExampleMod implements ModInitializer {
                 if (client.player != null && !lastMiningCommand.isEmpty()) {
                     client.player.setJumping(false);
                     
-                    // Berhenti dan lupakan target sekarang
+                    // Setting otomatis agar Baritone tidak keras kepala
+                    client.player.networkHandler.sendChatMessage("#settings blacklistThreshold 1");
+                    client.player.networkHandler.sendChatMessage("#settings avoidPermissions true");
+                    
+                    // Reset total
+                    client.player.networkHandler.sendChatMessage("#pause");
                     client.player.networkHandler.sendChatMessage("#cancel");
                     client.player.networkHandler.sendChatMessage("#blacklist");
-                    // GC untuk membersihkan cache rute agar tidak balik ke rute lama
                     client.player.networkHandler.sendChatMessage("#gc");
                     
                     client.player.setYaw(client.player.getYaw() + 180);
                     
                     new Thread(() -> {
                         try {
-                            // Jalan menjauh lebih lama (3 detik) agar benar-benar keluar area
+                            // Lari menjauh agar keluar dari radius claim
                             client.options.forwardKey.setPressed(true);
-                            Thread.sleep(3000);
+                            Thread.sleep(4000);
                             client.options.forwardKey.setPressed(false);
                             
-                            // Jeda agar posisi sinkron dengan server
                             Thread.sleep(1500);
-                            
-                            // Paksa Baritone mulai ulang tugas dari nol di lokasi baru
+                            // Eksekusi ulang perintah terakhir
                             client.player.networkHandler.sendChatMessage(lastMiningCommand);
                         } catch (Exception e) {
                             e.printStackTrace();
