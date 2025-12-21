@@ -13,27 +13,26 @@ public class ExampleMod implements ModInitializer {
 
             if (chat.contains("permission to build here")) {
                 if (client.player != null) {
-                    // 1. Matikan lompat otomatis mod kita
+                    // 1. Matikan lompat
                     client.player.setJumping(false);
                     
-                    // 2. Blacklist koordinat sekarang agar Baritone kapok ke sini
-                    // Perintah ini menandai area sekitar agar Baritone cari jalan memutar
-                    client.player.networkHandler.sendChatCommand("baritone gc"); 
-                    client.player.networkHandler.sendChatCommand("baritone blacklist");
+                    // 2. Kirim perintah internal Baritone pakai prefix '#'
+                    // Gunakan sendChatMessage agar diproses sebagai command oleh Baritone
+                    client.player.networkHandler.sendChatMessage("#blacklist");
+                    client.player.networkHandler.sendChatMessage("#gc");
                     
-                    // 3. Putar badan menjauh
+                    // 3. Putar badan menjauh agar tidak stuck di border yang sama
                     client.player.setYaw(client.player.getYaw() + 180);
                     
-                    // 4. Paksa gerak menjauh sebentar agar tidak stuck di border
                     new Thread(() -> {
                         try {
+                            // 4. Paksa lari menjauh selama 1.5 detik
                             client.options.forwardKey.setPressed(true);
-                            Thread.sleep(1200);
+                            Thread.sleep(1500);
                             client.options.forwardKey.setPressed(false);
                             
-                            // 5. Perintahkan Baritone cari target baru
-                            // Ini akan memaksa Baritone menghitung ulang rute
-                            client.player.networkHandler.sendChatCommand("baritone resume");
+                            // 5. Resume Baritone dengan target baru
+                            client.player.networkHandler.sendChatMessage("#resume");
                         } catch (Exception e) {}
                     }).start();
                 }
