@@ -2,45 +2,48 @@ package net.fabricmc.example;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayMessagingEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.minecraft.client.MinecraftClient;
 
 public class ExampleMod implements ModInitializer {
-    private String lastBaritoneCommand = "#mine log"; // Default jika belum ngetik apa-apa
+    private static String lastMiningCommand = "";
 
     @Override
     public void onInitialize() {
-        // Bagian untuk mencatat perintah terakhir kamu
-        ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
-            String text = message.getString();
-            if (text.startsWith("#") && !text.contains("blacklist") && !text.contains("stop")) {
-                lastBaritoneCommand = text;
+        ClientSendMessageEvents.CHAT.register((message) -> {
+            if (message.startsWith("#mine") || message.startsWith("#click") || message.startsWith("#goto")) {
+                lastMiningCommand = message;
             }
-            return message;
         });
 
-        // Bagian eksekusi saat kena claim
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             String chatContent = message.getString();
             MinecraftClient client = MinecraftClient.getInstance();
 
             if (chatContent.contains("permission to build here")) {
-                if (client.player != null) {
+                if (client.player != null && !lastMiningCommand.isEmpty()) {
                     client.player.setJumping(false);
                     
-                    client.player.networkHandler.sendChatMessage("#stop");
+                    // Berhenti dan lupakan target sekarang
+                    client.player.networkHandler.sendChatMessage("#cancel");
                     client.player.networkHandler.sendChatMessage("#blacklist");
+                    // GC untuk membersihkan cache rute agar tidak balik ke rute lama
+                    client.player.networkHandler.sendChatMessage("#gc");
+                    
                     client.player.setYaw(client.player.getYaw() + 180);
                     
                     new Thread(() -> {
                         try {
+                            // Jalan menjauh lebih lama (3 detik) agar benar-benar keluar area
                             client.options.forwardKey.setPressed(true);
-                            Thread.sleep(2000);
+                            Thread.sleep(3000);
                             client.options.forwardKey.setPressed(false);
                             
-                            Thread.sleep(1000);
-                            // Mengulang perintah terakhir yang kamu ketik manual
-                            client.player.networkHandler.sendChatMessage(lastBaritoneCommand);
+                            // Jeda agar posisi sinkron dengan server
+                            Thread.sleep(1500);
+                            
+                            // Paksa Baritone mulai ulang tugas dari nol di lokasi baru
+                            client.player.networkHandler.sendChatMessage(lastMiningCommand);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
