@@ -7,50 +7,51 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
 public class ExampleMod implements ModInitializer {
-    private static String lastMiningCommand = "";
-    private static boolean isEscaping = false;
+    private String currentJob = "";
+    private boolean activeRedirect = false;
 
     @Override
     public void onInitialize() {
-        ClientSendMessageEvents.CHAT.register((message) -> {
-            if (message.startsWith("#mine") || message.startsWith("#click") || message.startsWith("#goto")) {
-                lastMiningCommand = message;
+        ClientSendMessageEvents.CHAT.register(msg -> {
+            if (msg.startsWith("#mine") || msg.startsWith("#click") || msg.startsWith("#goto")) {
+                currentJob = msg;
             }
         });
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            String chatContent = message.getString();
-            MinecraftClient client = MinecraftClient.getInstance();
+            String content = message.getString();
+            MinecraftClient mc = MinecraftClient.getInstance();
 
-            if (chatContent.contains("permission to build here")) {
-                if (client.player != null && !lastMiningCommand.isEmpty()) {
+            if (content.contains("permission to build here")) {
+                if (mc.player != null && !currentJob.isEmpty()) {
+                    activeRedirect = true;
                     
-                    client.player.networkHandler.sendChatMessage("#cancel");
-                    client.player.networkHandler.sendChatMessage("#blacklist");
+                    mc.player.networkHandler.sendChatMessage("#cancel");
+                    mc.player.networkHandler.sendChatMessage("#blacklist");
                     
-                    // Hitung koordinat 35 blok ke arah KANAN player
-                    Vec3d pos = client.player.getPos();
-                    float yaw = client.player.getYaw();
-                    // Menambah 90 derajat ke yaw untuk mendapatkan arah kanan
-                    double radians = Math.toRadians(yaw + 90);
-                    double targetX = pos.x - (35 * Math.sin(radians));
-                    double targetZ = pos.z + (35 * Math.cos(radians));
+                    Vec3d pos = mc.player.getPos();
+                    float yaw = mc.player.getYaw();
+                    double rad = Math.toRadians(yaw + 90);
                     
-                    isEscaping = true;
-                    client.player.networkHandler.sendChatMessage("#goto " + (int)targetX + " " + (int)pos.y + " " + (int)targetZ);
+                    int tx = (int) (pos.x - (35 * Math.sin(rad)));
+                    int tz = (int) (pos.z + (35 * Math.cos(rad)));
+                    
+                    mc.player.networkHandler.sendChatMessage("#goto " + tx + " " + (int)pos.y + " " + tz);
                 }
             }
 
-            // Jika Baritone selesai sampai di titik 35 blok
-            if (isEscaping && (chatContent.contains("Path complete") || chatContent.contains("Goal reached"))) {
-                isEscaping = false;
-                if (client.player != null) {
-                    client.player.networkHandler.sendChatMessage("#gc");
+            if (activeRedirect && (content.contains("Path complete") || content.contains("Goal reached"))) {
+                activeRedirect = false;
+                
+                if (mc.player != null && !currentJob.isEmpty()) {
                     new Thread(() -> {
                         try {
-                            Thread.sleep(1500); // Jeda biar stabil
-                            client.player.networkHandler.sendChatMessage(lastMiningCommand);
-                        } catch (Exception e) {}
+                            Thread.sleep(1200);
+                            mc.execute(() -> {
+                                mc.player.networkHandler.sendChatMessage("#gc");
+                                mc.player.networkHandler.sendChatMessage(currentJob);
+                            });
+                        } catch (InterruptedException e) {}
                     }).start();
                 }
             }
