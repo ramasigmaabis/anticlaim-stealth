@@ -7,54 +7,59 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
 public class ExampleMod implements ModInitializer {
-    private String currentJob = "";
-    private boolean activeRedirect = false;
+    private String savedJob = "";
+    private boolean isRedirecting = false;
 
     @Override
     public void onInitialize() {
         ClientSendMessageEvents.CHAT.register(msg -> {
             if (msg.startsWith("#mine") || msg.startsWith("#click") || msg.startsWith("#goto")) {
-                currentJob = msg;
+                savedJob = msg;
             }
         });
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            String content = message.getString();
+            String txt = message.getString();
             MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc.player == null) return;
 
-            if (content.contains("permission to build here")) {
-                if (mc.player != null && !currentJob.isEmpty()) {
-                    activeRedirect = true;
-                    
+            // 1. Deteksi Claim
+            if (txt.contains("permission to build here")) {
+                if (!savedJob.isEmpty()) {
+                    isRedirecting = true;
                     mc.player.networkHandler.sendChatMessage("#cancel");
                     mc.player.networkHandler.sendChatMessage("#blacklist");
                     
-                    Vec3d pos = mc.player.getPos();
-                    float yaw = mc.player.getYaw();
-                    double rad = Math.toRadians(yaw + 90);
+                    Vec3d p = mc.player.getPos();
+                    float y = mc.player.getYaw();
+                    double r = Math.toRadians(y + 90);
                     
-                    int tx = (int) (pos.x - (35 * Math.sin(rad)));
-                    int tz = (int) (pos.z + (35 * Math.cos(rad)));
+                    int x = (int) (p.x - (35 * Math.sin(r)));
+                    int z = (int) (p.z + (35 * Math.cos(r)));
                     
-                    mc.player.networkHandler.sendChatMessage("#goto " + tx + " " + (int)pos.y + " " + tz);
+                    mc.player.networkHandler.sendChatMessage("#goto " + x + " " + (int)p.y + " " + z);
                 }
             }
 
-            if (activeRedirect && (content.contains("Path complete") || content.contains("Goal reached"))) {
-                activeRedirect = false;
+            // 2. Deteksi Selesai (Ditingkatkan ke Ignore Case & Trim)
+            String raw = txt.toLowerCase().trim();
+            if (isRedirecting && (raw.contains("path complete") || raw.contains("goal reached") || raw.contains("finished"))) {
+                isRedirecting = false;
                 
-                if (mc.player != null && !currentJob.isEmpty()) {
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(1200);
-                            mc.execute(() -> {
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(1500);
+                        // Menggunakan mc.execute untuk memastikan perintah terkirim di thread utama
+                        mc.execute(() -> {
+                            if (mc.player != null && !savedJob.isEmpty()) {
                                 mc.player.networkHandler.sendChatMessage("#gc");
-                                mc.player.networkHandler.sendChatMessage(currentJob);
-                            });
-                        } catch (InterruptedException e) {}
-                    }).start();
-                }
+                                mc.player.networkHandler.sendChatMessage(savedJob);
+                            }
+                        });
+                    } catch (Exception e) {}
+                }).start();
             }
         });
     }
-}
+                    }
+                        
