@@ -7,14 +7,15 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
 public class ExampleMod implements ModInitializer {
-    private String task = "";
-    private boolean moving = false;
+    private String lastTask = "";
+    private boolean needResume = false;
 
     @Override
     public void onInitialize() {
+        // Simpan command manual kamu
         ClientSendMessageEvents.CHAT.register(msg -> {
             if (msg.startsWith("#mine") || msg.startsWith("#click") || msg.startsWith("#goto")) {
-                task = msg;
+                lastTask = msg;
             }
         });
 
@@ -23,10 +24,10 @@ public class ExampleMod implements ModInitializer {
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc.player == null) return;
 
-            // 1. Deteksi Claim
+            // 1. DETEKSI CLAIM -> KABUR
             if (raw.contains("permission to build here")) {
-                if (!task.isEmpty()) {
-                    moving = true;
+                if (!lastTask.isEmpty()) {
+                    needResume = true; // Tandai bahwa kita harus balik kerja nanti
                     mc.player.networkHandler.sendChatMessage("#cancel");
                     mc.player.networkHandler.sendChatMessage("#blacklist");
                     
@@ -34,26 +35,26 @@ public class ExampleMod implements ModInitializer {
                     float y = mc.player.getYaw();
                     double r = Math.toRadians(y + 90);
                     
-                    int x = (int) (p.x - (35 * Math.sin(r)));
-                    int z = (int) (p.z + (35 * Math.cos(r)));
+                    int tx = (int) (p.x - (35 * Math.sin(r)));
+                    int tz = (int) (p.z + (35 * Math.cos(r)));
                     
-                    mc.player.networkHandler.sendChatMessage("#goto " + x + " " + (int)p.y + " " + z);
+                    mc.player.networkHandler.sendChatMessage("#goto " + tx + " " + (int)p.y + " " + tz);
                 }
             }
 
-            // 2. Deteksi Selesai & Lanjut Mine
-            String log = raw.toLowerCase();
-            if (moving && (log.contains("path complete") || log.contains("goal reached"))) {
-                moving = false;
+            // 2. DETEKSI STOP/SELESAI -> PAKSA RESUME
+            // Baritone akan mengirim pesan ini kalau rute selesai atau dibatalkan
+            String chat = raw.toLowerCase();
+            if (needResume && (chat.contains("path complete") || chat.contains("goal reached") || chat.contains("canceled"))) {
+                needResume = false; // Reset tanda
                 
                 new Thread(() -> {
                     try {
-                        // Jeda 2 detik agar posisi sinkron dan Baritone siap
-                        Thread.sleep(2000);
+                        Thread.sleep(2000); // Tunggu Baritone tenang
                         mc.execute(() -> {
-                            if (mc.player != null && task.startsWith("#")) {
+                            if (mc.player != null && !lastTask.isEmpty()) {
                                 mc.player.networkHandler.sendChatMessage("#gc");
-                                mc.player.networkHandler.sendChatMessage(task);
+                                mc.player.networkHandler.sendChatMessage(lastTask);
                             }
                         });
                     } catch (Exception ignored) {}
