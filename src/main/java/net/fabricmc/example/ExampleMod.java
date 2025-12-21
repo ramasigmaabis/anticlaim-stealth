@@ -7,26 +7,26 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
 public class ExampleMod implements ModInitializer {
-    private String savedJob = "";
-    private boolean isRedirecting = false;
+    private String task = "";
+    private boolean moving = false;
 
     @Override
     public void onInitialize() {
         ClientSendMessageEvents.CHAT.register(msg -> {
             if (msg.startsWith("#mine") || msg.startsWith("#click") || msg.startsWith("#goto")) {
-                savedJob = msg;
+                task = msg;
             }
         });
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            String txt = message.getString();
+            String raw = message.getString();
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc.player == null) return;
 
             // 1. Deteksi Claim
-            if (txt.contains("permission to build here")) {
-                if (!savedJob.isEmpty()) {
-                    isRedirecting = true;
+            if (raw.contains("permission to build here")) {
+                if (!task.isEmpty()) {
+                    moving = true;
                     mc.player.networkHandler.sendChatMessage("#cancel");
                     mc.player.networkHandler.sendChatMessage("#blacklist");
                     
@@ -41,25 +41,24 @@ public class ExampleMod implements ModInitializer {
                 }
             }
 
-            // 2. Deteksi Selesai (Ditingkatkan ke Ignore Case & Trim)
-            String raw = txt.toLowerCase().trim();
-            if (isRedirecting && (raw.contains("path complete") || raw.contains("goal reached") || raw.contains("finished"))) {
-                isRedirecting = false;
+            // 2. Deteksi Selesai & Lanjut Mine
+            String log = raw.toLowerCase();
+            if (moving && (log.contains("path complete") || log.contains("goal reached"))) {
+                moving = false;
                 
                 new Thread(() -> {
                     try {
-                        Thread.sleep(1500);
-                        // Menggunakan mc.execute untuk memastikan perintah terkirim di thread utama
+                        // Jeda 2 detik agar posisi sinkron dan Baritone siap
+                        Thread.sleep(2000);
                         mc.execute(() -> {
-                            if (mc.player != null && !savedJob.isEmpty()) {
+                            if (mc.player != null && task.startsWith("#")) {
                                 mc.player.networkHandler.sendChatMessage("#gc");
-                                mc.player.networkHandler.sendChatMessage(savedJob);
+                                mc.player.networkHandler.sendChatMessage(task);
                             }
                         });
-                    } catch (Exception e) {}
+                    } catch (Exception ignored) {}
                 }).start();
             }
         });
     }
-                    }
-                        
+}
