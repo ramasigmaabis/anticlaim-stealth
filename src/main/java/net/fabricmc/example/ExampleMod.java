@@ -13,26 +13,29 @@ public class ExampleMod implements ModInitializer {
 
             if (chat.contains("permission to build here")) {
                 if (client.player != null) {
-                    // 1. Matikan lompat
+                    // 1. Matikan jumping agar tidak loncat di tempat
                     client.player.setJumping(false);
                     
-                    // 2. Kirim perintah internal Baritone pakai prefix '#'
-                    // Gunakan sendChatMessage agar diproses sebagai command oleh Baritone
-                    client.player.networkHandler.sendChatMessage("#blacklist");
-                    client.player.networkHandler.sendChatMessage("#gc");
+                    // 2. Batalkan tugas yang sekarang (supaya dia lupa blok di dalam claim)
+                    client.player.networkHandler.sendChatMessage("#cancel");
                     
-                    // 3. Putar badan menjauh agar tidak stuck di border yang sama
+                    // 3. Tandai lokasi itu sebagai blacklist agar tidak didatangi lagi
+                    client.player.networkHandler.sendChatMessage("#blacklist");
+                    
+                    // 4. Balik badan 180 derajat
                     client.player.setYaw(client.player.getYaw() + 180);
                     
                     new Thread(() -> {
                         try {
-                            // 4. Paksa lari menjauh selama 1.5 detik
+                            // 5. Paksa jalan menjauh selama 2 detik (cari lahan baru)
                             client.options.forwardKey.setPressed(true);
-                            Thread.sleep(1500);
+                            Thread.sleep(2000);
                             client.options.forwardKey.setPressed(false);
                             
-                            // 5. Resume Baritone dengan target baru
-                            client.player.networkHandler.sendChatMessage("#resume");
+                            // 6. NAH, INI KUNCINYA: Suruh Baritone mining lagi dari nol
+                            // Dia akan mencari blok terdekat dari posisi barumu yang bukan di area blacklist
+                            client.player.networkHandler.sendChatMessage("#mine log"); 
+                            
                         } catch (Exception e) {}
                     }).start();
                 }
