@@ -1,5 +1,5 @@
 name: Build Mod
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -10,11 +10,13 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
       - name: Build with Gradle
-        run: chmod +x gradlew && ./gradlew build
+        run: gradle build --stacktrace
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Mod-Jar-AntiClaim
+          name: Mod-Jar-Final
           path: build/libs/*.jar
           
