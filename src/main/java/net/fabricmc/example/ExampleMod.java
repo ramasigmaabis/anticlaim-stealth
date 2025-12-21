@@ -7,27 +7,31 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
 public class ExampleMod implements ModInitializer {
-    private String lastTask = "";
-    private boolean needResume = false;
+    private String lastJob = "";
+    private boolean isWaiting = false;
+    private Vec3d lastPos = Vec3d.ZERO;
+    private long lastMoveTime = 0;
 
     @Override
     public void onInitialize() {
-        // Simpan command manual kamu
-        ClientSendMessageEvents.CHAT.register(msg -> {
-            if (msg.startsWith("#mine") || msg.startsWith("#click") || msg.startsWith("#goto")) {
-                lastTask = msg;
+        // Simpan perintah mining kamu
+        ClientSendMessageEvents.CHAT.register(m -> {
+            if (m.startsWith("#mine") || m.startsWith("#click") || m.startsWith("#goto")) {
+                lastJob = m;
             }
         });
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            String raw = message.getString();
+            String text = message.getString();
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc.player == null) return;
 
-            // 1. DETEKSI CLAIM -> KABUR
-            if (raw.contains("permission to build here")) {
-                if (!lastTask.isEmpty()) {
-                    needResume = true; // Tandai bahwa kita harus balik kerja nanti
+            // 1. Kena Claim -> Kabur ke kanan
+            if (text.contains("permission to build here")) {
+                if (!lastJob.isEmpty()) {
+                    isWaiting = true; // Mulai pantau gerakan
+                    lastMoveTime = System.currentTimeMillis();
+                    
                     mc.player.networkHandler.sendChatMessage("#cancel");
                     mc.player.networkHandler.sendChatMessage("#blacklist");
                     
@@ -35,30 +39,38 @@ public class ExampleMod implements ModInitializer {
                     float y = mc.player.getYaw();
                     double r = Math.toRadians(y + 90);
                     
-                    int tx = (int) (p.x - (35 * Math.sin(r)));
-                    int tz = (int) (p.z + (35 * Math.cos(r)));
+                    int x = (int) (p.x - (35 * Math.sin(r)));
+                    int z = (int) (p.z + (35 * Math.cos(r)));
                     
-                    mc.player.networkHandler.sendChatMessage("#goto " + tx + " " + (int)p.y + " " + tz);
+                    mc.player.networkHandler.sendChatMessage("#goto " + x + " " + (int)p.y + " " + z);
                 }
             }
 
-            // 2. DETEKSI STOP/SELESAI -> PAKSA RESUME
-            // Baritone akan mengirim pesan ini kalau rute selesai atau dibatalkan
-            String chat = raw.toLowerCase();
-            if (needResume && (chat.contains("path complete") || chat.contains("goal reached") || chat.contains("canceled"))) {
-                needResume = false; // Reset tanda
+            // 2. Cek Gerakan (Idle Detection)
+            if (isWaiting) {
+                Vec3d currentPos = mc.player.getPos();
                 
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(2000); // Tunggu Baritone tenang
-                        mc.execute(() -> {
-                            if (mc.player != null && !lastTask.isEmpty()) {
-                                mc.player.networkHandler.sendChatMessage("#gc");
-                                mc.player.networkHandler.sendChatMessage(lastTask);
-                            }
-                        });
-                    } catch (Exception ignored) {}
-                }).start();
+                // Jika player bergerak, reset waktu diam
+                if (currentPos.distanceTo(lastPos) > 0.05) {
+                    lastMoveTime = System.currentTimeMillis();
+                } 
+                // Jika player diam lebih dari 2 detik (2000ms)
+                else if (System.currentTimeMillis() - lastMoveTime > 2000) {
+                    isWaiting = false;
+                    
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(500);
+                            mc.execute(() -> {
+                                if (mc.player != null && !lastJob.isEmpty()) {
+                                    mc.player.networkHandler.sendChatMessage("#gc");
+                                    mc.player.networkHandler.sendChatMessage(lastJob);
+                                }
+                            });
+                        } catch (Exception ignored) {}
+                    }).start();
+                }
+                lastPos = currentPos;
             }
         });
     }
