@@ -10,7 +10,7 @@ public class ExampleMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // Bagian untuk mencatat perintah terakhir
+        // Bagian untuk mencatat perintah terakhir kamu
         ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
             String text = message.getString();
             if (text.startsWith("#") && !text.contains("blacklist") && !text.contains("stop")) {
@@ -39,7 +39,7 @@ public class ExampleMod implements ModInitializer {
                             client.options.forwardKey.setPressed(false);
                             
                             Thread.sleep(1000);
-                            // Mengulang perintah terakhir yang di ketik manual
+                            // Mengulang perintah terakhir yang kamu ketik manual
                             client.player.networkHandler.sendChatMessage(lastBaritoneCommand);
                         } catch (Exception e) {
                             e.printStackTrace();
