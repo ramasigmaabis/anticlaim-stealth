@@ -8,57 +8,59 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
 public class ExampleMod implements ModInitializer {
-    private String job = "";
-    private boolean checkIdle = false;
+    private String task = "";
+    private boolean pending = false;
     private Vec3d lastPos = Vec3d.ZERO;
     private long stopTime = 0;
 
     @Override
     public void onInitialize() {
-        // Catat command mining terakhirmu
+        // Catat command terakhir
         ClientSendMessageEvents.CHAT.register(msg -> {
             if (msg.startsWith("#mine") || msg.startsWith("#click") || msg.startsWith("#goto")) {
-                job = msg;
+                task = msg;
             }
         });
 
-        // Deteksi kalau kena claim
+        // Deteksi Claim
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            String text = message.getString();
+            String txt = message.getString();
             MinecraftClient mc = MinecraftClient.getInstance();
-            if (text.contains("permission to build here") && mc.player != null && !job.isEmpty()) {
-                checkIdle = true;
+            
+            if (txt.contains("permission to build here") && mc.player != null && !task.isEmpty()) {
+                pending = true; // Kunci antrian
                 stopTime = System.currentTimeMillis();
                 
                 mc.player.networkHandler.sendChatMessage("#cancel");
                 mc.player.networkHandler.sendChatMessage("#blacklist");
                 
-                // Kabur ke kanan 35 blok
                 Vec3d p = mc.player.getPos();
                 float y = mc.player.getYaw();
                 double r = Math.toRadians(y + 90);
-                int tx = (int) (p.x - (40 * Math.sin(r)));
-                int tz = (int) (p.z + (40 * Math.cos(r)));
+                int tx = (int) (p.x - (35 * Math.sin(r)));
+                int tz = (int) (p.z + (35 * Math.cos(r)));
                 
                 mc.player.networkHandler.sendChatMessage("#goto " + tx + " " + (int)p.y + " " + tz);
             }
         });
 
-        // PANTauan OTOMATIS (Tanpa perlu buka chat)
+        // Tick Monitor (Pengecekan gerakan 20x per detik)
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
-            if (mc.player == null || !checkIdle) return;
+            if (mc.player == null || !pending) return;
 
             Vec3d currentPos = mc.player.getPos();
             
-            // Cek apakah posisi berubah (masih jalan atau tidak)
+            // Jika ada pergerakan (jarak lebih dari 0.01 blok)
             if (currentPos.distanceTo(lastPos) > 0.01) {
-                stopTime = System.currentTimeMillis(); // Reset waktu kalau masih gerak
+                stopTime = System.currentTimeMillis(); // Reset timer
             } else {
-                // Kalau sudah diam selama 2 detik (2000ms)
+                // Jika sudah diam total selama 2 detik
                 if (System.currentTimeMillis() - stopTime > 2000) {
-                    checkIdle = false; // Matikan pengecekan
+                    pending = false; // Matikan antrian agar tidak spam
+                    
+                    // Eksekusi paksa
                     mc.player.networkHandler.sendChatMessage("#gc");
-                    mc.player.networkHandler.sendChatMessage(job); // OTOMATIS MINE LAGI
+                    mc.player.networkHandler.sendChatMessage(task);
                 }
             }
             lastPos = currentPos;
