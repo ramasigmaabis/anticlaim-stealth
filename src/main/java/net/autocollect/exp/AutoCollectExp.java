@@ -13,16 +13,14 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class AutoCollectExp implements ModInitializer {
     private boolean aktif = false;
-    private int slotTarget = 13; // Default slot (kotak ke-14)
+    private int slotTarget = 13; // Default slot tengah baris kedua
     private long timer5Menit = 0;
     private final long JEDA_5_MENIT = 5 * 60 * 1000;
-    
     private final List<BlockPos> antreanSpawner = new ArrayList<>();
     private boolean sedangProses = false;
     private long jedaPerSpawner = 0;
@@ -35,7 +33,7 @@ public class AutoCollectExp implements ModInitializer {
             if (msg.equalsIgnoreCase(".exp on")) {
                 aktif = true;
                 timer5Menit = System.currentTimeMillis();
-                sendChat("§aAuto EXP: NYALA");
+                sendChat("§aAuto EXP: AKTIF (1.21.4)");
                 return "";
             } 
             if (msg.equalsIgnoreCase(".exp off")) {
@@ -47,7 +45,7 @@ public class AutoCollectExp implements ModInitializer {
             if (msg.startsWith(".setslot ")) {
                 try {
                     slotTarget = Integer.parseInt(msg.split(" ")[1]);
-                    sendChat("§6Slot target diubah ke: §f" + slotTarget);
+                    sendChat("§6Slot target: §f" + slotTarget);
                 } catch (Exception e) {
                     sendChat("§cGunakan angka! Contoh: .setslot 13");
                 }
@@ -56,35 +54,34 @@ public class AutoCollectExp implements ModInitializer {
             return msg;
         });
 
-        // LOGIKA TICK
+        // LOGIKA SETIAP TICK
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             if (!aktif || mc.player == null || mc.world == null) return;
-
             long sekarang = System.currentTimeMillis();
 
-            // LANGKAH 1: Scan setiap 5 menit
+            // 1. Scan spawner setiap 5 menit
             if (sekarang - timer5Menit >= JEDA_5_MENIT && antreanSpawner.isEmpty() && !sedangProses) {
                 scanSpawner(mc);
                 timer5Menit = sekarang;
             }
 
-            // LANGKAH 2: Ambil spawner dari antrean (Jeda 0.8 detik biar aman)
+            // 2. Buka spawner dari antrean (Jeda 0.8 detik agar tidak terdeteksi bot)
             if (!antreanSpawner.isEmpty() && !sedangProses && sekarang - jedaPerSpawner > 800) {
                 bukaSpawner(mc);
             }
 
-            // LANGKAH 3: Klik icon di dalam GUI
+            // 3. Klik icon di dalam GUI
             if (sedangProses && mc.currentScreen instanceof HandledScreen<?> screen) {
-                // Klik kiri pada slot target
+                // Melakukan klik pada slot target
                 mc.interactionManager.clickSlot(screen.getScreenHandler().syncId, slotTarget, 0, SlotActionType.PICKUP, mc.player);
                 
-                // Menandai selesai (Tanpa tutup manual, biarkan server yang tutup)
+                // Tandai selesai, biarkan server yang menutup GUI
                 sedangProses = false;
                 jedaPerSpawner = sekarang;
                 timeoutGUI = 0;
             }
 
-            // PENGAMAN: Jika GUI tidak muncul/eror dalam 4 detik, lanjut ke spawner lain
+            // 4. Pengaman jika GUI tidak muncul (Timeout 4 detik)
             if (sedangProses && timeoutGUI > 0 && sekarang - timeoutGUI > 4000) {
                 sedangProses = false;
                 jedaPerSpawner = sekarang;
@@ -100,20 +97,24 @@ public class AutoCollectExp implements ModInitializer {
             for (int y = -10; y <= 10; y++) {
                 for (int z = -10; z <= 10; z++) {
                     BlockPos pos = pPos.add(x, y, z);
-                    if (mc.world.getBlockState(pos).getBlock().asItem().toString().contains("spawner")) {
+                    BlockState state = mc.world.getBlockState(pos);
+                    // Deteksi blok spawner
+                    if (state.getBlock().asItem().toString().contains("spawner")) {
                         antreanSpawner.add(pos);
                     }
                 }
             }
         }
-        if (!antreanSpawner.isEmpty()) sendChat("§eMenemukan " + antreanSpawner.size() + " spawner...");
+        if (!antreanSpawner.isEmpty()) sendChat("§eDitemukan " + antreanSpawner.size() + " spawner...");
     }
 
     private void bukaSpawner(MinecraftClient mc) {
+        if (antreanSpawner.isEmpty()) return;
         BlockPos pos = antreanSpawner.remove(0);
         sedangProses = true;
         timeoutGUI = System.currentTimeMillis();
         Vec3d v = new Vec3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+        // Klik kanan spawner
         mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, new BlockHitResult(v, Direction.UP, pos, false));
     }
 
@@ -121,4 +122,4 @@ public class AutoCollectExp implements ModInitializer {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player != null) mc.player.sendMessage(Text.of("§8[§6AutoExp§8] " + s), false);
     }
-  }
+                                                                      }
