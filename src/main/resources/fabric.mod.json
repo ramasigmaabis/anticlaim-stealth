@@ -3,7 +3,7 @@
   "id": "autocollect-exp",
   "version": "1.0.0",
   "name": "Auto Collect EXP",
-  "description": "Otomatis ambil EXP dan Jual item dari spawner di 1.21.4",
+  "description": "Otomatis ambil EXP dari spawner",
   "authors": ["Rama"],
   "license": "MIT",
   "environment": "client",
@@ -11,7 +11,7 @@
     "main": [
       "net.autocollect.exp.AutoCollectExp"
     ]
-  },
+  }
   "depends": {
     "fabricloader": ">=0.14.0",
     "minecraft": ">=1.21.4",
