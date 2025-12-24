@@ -1,6 +1,21 @@
-"entrypoints": {
-  "main": [
-    "net.autocollect.exp.AutoCollectExp"
-  ]
-},
+{
+  "schemaVersion": 1,
+  "id": "autocollect-exp",
+  "version": "1.0.0",
+  "name": "Auto Collect EXP",
+  "description": "Otomatis ambil EXP dan Jual item dari spawner di 1.21.4",
+  "authors": ["Rama"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "net.autocollect.exp.AutoCollectExp"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "minecraft": ">=1.21.4",
+    "fabric-api": "*"
+  }
+}
 
