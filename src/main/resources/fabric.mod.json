@@ -1,18 +1,6 @@
-{
-  "schemaVersion": 1,
-  "id": "anticlaim-stealth",
-  "version": "3.0.0",
-  "name": "AntiClaim Stealth",
-  "description": "Bypass Claim Detection",
-  "authors": ["User"],
-  "contact": {},
-  "license": "MIT",
-  "environment": "*",
-  "entrypoints": {
-    "main": ["net.fabricmc.example.ExampleMod"]
-  },
-  "depends": {
-    "fabricloader": ">=0.18.1",
-    "minecraft": ">=1.21"
-  }
-}
+"entrypoints": {
+  "main": [
+    "net.autocollect.exp.AutoCollectExp"
+  ]
+},
+
