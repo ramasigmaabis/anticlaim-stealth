@@ -2,13 +2,15 @@
   "schemaVersion": 1,
   "id": "modid",
   "version": "1.0.0",
-  "name": "Auto Collect EXP",
-  "description": "Otomatis ambil EXP dari spawner",
+  "name": "Anticlaim Stealth",
+  "description": "Auto Claim EXP Spawner GUI",
   "authors": ["Rama"],
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
-    "main": ["net.autocollect.exp.AutoCollectExp"]
+    "main": [
+      "net.autocollect.exp.AutoCollectExp"
+    ]
   },
   "depends": {
     "fabricloader": ">=0.14.0",
