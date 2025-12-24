@@ -1,12 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "autocollect-exp",
+  "id": "modid",
   "version": "1.0.0",
   "name": "Auto Collect EXP",
   "description": "Otomatis ambil EXP dari spawner",
-  "authors": [
-    "Rama"
-  ],
+  "authors": ["Rama"],
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
