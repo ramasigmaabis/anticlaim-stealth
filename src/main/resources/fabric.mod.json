@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "modid",
   "version": "1.0.0",
-  "name": "Anticlaim Stealth",
+  "name": "Auto Collect Exp",
   "description": "Auto Claim EXP Spawner GUI",
   "authors": ["Rama"],
   "license": "MIT",
